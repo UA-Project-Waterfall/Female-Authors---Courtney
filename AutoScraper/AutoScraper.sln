@@ -1,0 +1,23 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.34301.259
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "AutoScraper", "AutoScraper.pyproj", "{5825276B-49EE-41F8-BAE4-3F5A73EAE754}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5825276B-49EE-41F8-BAE4-3F5A73EAE754}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5825276B-49EE-41F8-BAE4-3F5A73EAE754}.Release|Any CPU.ActiveCfg = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {BE7AAC5A-2E9D-465B-996D-AC46AAED1314}
+	EndGlobalSection
+EndGlobal
