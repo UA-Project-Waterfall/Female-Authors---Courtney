@@ -10,10 +10,12 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
+authorFile = input("Name of author list file: ")
 pageLoadTime = 8
+speed = max(0.5, float(input("Seconds per query (Default is 2): ").strip() or 2))
+numDrivers = round(pageLoadTime / speed)
+print("Speed adjusted to " + str(pageLoadTime / numDrivers) + " seconds per query")
 maxRandTime = 2
-numDrivers = 2
-authorFile = "doctor_data.xlsx"
 
 def __main__():
     authorTable = pandas.read_excel(Path.joinpath(Path(__file__).parent.resolve(), authorFile))
