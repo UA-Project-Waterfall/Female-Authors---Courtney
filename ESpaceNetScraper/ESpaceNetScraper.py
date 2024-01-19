@@ -18,9 +18,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webbrowser import Chrome
-import pyautogui, pygetwindow
 
-randomBuffer = 2
 waitBuffer = 10
 
 def __main__():
@@ -29,7 +27,7 @@ def __main__():
     threads = [Thread()] * numDrivers
     threads[0].start()
     
-    outputPath = Path.joinpath(Path(__file__).parent.resolve(), "Lens Downloads " +
+    outputPath = Path.joinpath(Path(__file__).parent.resolve(), "ESpaceNet Downloads " +
                                datetime.now().strftime("%m-%d %H-%M-%S"))
     drivers = initDrivers(numDrivers, outputPath)    
 
@@ -39,7 +37,7 @@ def __main__():
         args = (drivers[index], authorTable['First Name'][i], authorTable['Last Name'][i])
         threads[index] = Thread(target = pageThread, args = args)
         threads[index].start()
-        sleep(speed + random() * randomBuffer)
+        sleep(speed)
         
     for thread in threads:
         thread.join()
@@ -66,11 +64,10 @@ def promptDriverParams():
     confirm = False    
 
     while not confirm:
-        print("\nPlease enter speed below. Faster speed may be detected as unusual bot behavior.")
-        print("Additionally, a random amount of time between 0-2 seconds will be added to the input speed.")
+        print("\nPlease enter speed below. Faster speed may cause lag.")
         speed = max(0.5, float(input("Base seconds per query (Recommended is 4): ").strip() or 4))
         numDrivers = ceil(waitBuffer / speed)
-        print("\nSpeed set to " + str(speed) + " + [0-" + str(randomBuffer) + "] seconds per query.")
+        print("\nSpeed set to " + str(speed) + " seconds per query.")
         print("Number of drivers that will be used: " + str(numDrivers))
         confirm = input("Type 'y' to confirm (Press enter otherwise): ").lower() == "y"
     return [speed, numDrivers]
@@ -83,7 +80,7 @@ def initDrivers(numDrivers, outputFolder):
     options.add_experimental_option("useAutomationExtension", False)
     options.add_argument("--disable-blink-features")
     options.add_argument("--disable-blink-features=AutomationControlled")
-    #options.add_argument('--blink-settings=imagesEnabled=false')
+    options.add_argument('--blink-settings=imagesEnabled=false')
     prefs = {"profile.default_content_settings.popups": 0,
              "download.prompt_for_download": False,
              "download.default_directory": str(outputFolder),
@@ -91,40 +88,10 @@ def initDrivers(numDrivers, outputFolder):
     options.add_experimental_option("prefs",prefs)
     
     drivers = [None] * numDrivers
-    (SCREEN_WIDTH, SCREEN_HEIGHT) = pyautogui.size()
     
-    print("\nPlease do not move the mouse or press keys while drivers are initilizing.")
-    input("Press enter to begin initialization. It may take a minute.")
-    cmdWindow = pygetwindow.getActiveWindow()
-
     for i in range(0, numDrivers):
         driver = webdriver.Chrome(service = Service(), options = options)
         driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => false})")
-        driver.get("https://www.google.com")
-        
-        wait = WebDriverWait(driver, 30)
-        wait.until(EC.presence_of_element_located((By.TAG_NAME, "body")))
-        drivers[i] = driver
-        
-        pyautogui.moveTo(SCREEN_WIDTH * 0.17, SCREEN_HEIGHT * 0.02)
-        pyautogui.click()
-        pyautogui.write("https://www.lens.org/lens/search/patent/list?q=" + str(int(random() * 1000)))
-        pyautogui.press('enter')
-
-    sleep(waitBuffer)
-    cmdWindow.activate()
-    print("\nIt is now safe to move the mouse and press keys.")
-    print("Initialization is currently paused to bypass bot detection.")
-    input("Please press enter once cloudfare bot-detection is passed.")
-    
-    print("\nAutomation will now start. Please keep driver windows open and maximized.")
-    print("The drivers will automatically close once all authors are processed.")
-    print("Sit back and enjoy :)")
-    
-    for driver in drivers:
-        tabs = driver.window_handles
-        driver.close()
-        driver.switch_to.window(tabs[1])
         driver.outputFolder = outputFolder
     
     return drivers
