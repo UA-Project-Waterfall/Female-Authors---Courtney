@@ -3,7 +3,6 @@ print("Importing Utility modules")
 from pathlib import Path
 from random import random
 from math import ceil
-from turtle import position
 from pandas import read_excel
 from threading import Thread
 from time import sleep
@@ -19,7 +18,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webbrowser import Chrome
-import pyautogui, pygetwindow, openpyxl
+import pyautogui, openpyxl
 
 randomBuffer = 2
 waitBuffer = 10
@@ -94,27 +93,32 @@ def initDrivers(numDrivers, outputFolder):
     drivers = [None] * numDrivers
     (SCREEN_WIDTH, SCREEN_HEIGHT) = pyautogui.size()
     
-    print("\nA new Google Chrome window will open after this message for five seconds.")
-    print("Press move your mouse to the position of the new tab button when it appears.")
-    input("Press enter to continue.")
+    print("\nA new Google Chrome window will open after this message.")
+    print("Please click the new tab button to open a new tab when it appears.")
+    input("After clicking, keep the mouse on the button. Press enter to continue.")
     print("\nOpening Google Chrome window...")
-    cmdWindow = pygetwindow.getActiveWindow()
-    driver = webdriver.Chrome(service = Service(), options = options)
-    driver.get("https://www.google.com")
-    driverWindow = pygetwindow.getActiveWindow()
+    
+    testDriver = webdriver.Chrome(service = Service(), options = options)
+    test_html = "<html><head></head><body><div>Please click the new tab button.</div></body></html>"
+    testDriver.get("data:text/html;charset=utf-8," + test_html)
+    testDriver.execute_script('document.title = "Press New Tab Button >>>"')
     
     confirm = False
     while not confirm:
-        driverWindow.activate()
-        sleep(5)
+        while len(testDriver.window_handles) == 1:
+            testDriver.maximize_window()
         newTabPos = pyautogui.position()
-        cmdWindow.activate()
+        tabs = testDriver.window_handles
+        testDriver.switch_to.window(tabs[1])
+        testDriver.close()
+        testDriver.switch_to.window(tabs[0])
+        testDriver.minimize_window()
         print("\nThe current mouse position has been saved. Do you want to use the current position?")
         confirm = input("Type 'y' to confirm (Press enter otherwise): ").lower() == "y"
     
-    print("The program will now initialize drivers. This may take a minute.")
-    input("Please do not move your mouse during this time. Press enter when you are ready.")
-    driver.close()
+    print("\nThe program will now initialize drivers. Please do not move the mouse during this time.")
+    print("A window will appear to let you know when it is safe to move the mouse.")
+    input("Press enter when you are ready.")
     
     for i in range(0, numDrivers):
         driver = webdriver.Chrome(service = Service(), options = options)
@@ -131,14 +135,19 @@ def initDrivers(numDrivers, outputFolder):
         pyautogui.press('enter')
 
     sleep(waitBuffer)
-    cmdWindow.activate()
-    print("\nIt is now safe to move the mouse and press keys.")
-    print("Initialization is currently paused to bypass bot detection.")
+    test_html = "<html><head></head><body><div>It is safe to move the mouse now.\n" + \
+        "Please navigate back to the command window.</div></body></html>"
+    testDriver.get("data:text/html;charset=utf-8," + test_html)
+    testDriver.execute_script('document.title = "Navigate to CMD window."')
+    testDriver.maximize_window()
+    
+    print("\nInitialization is currently paused to bypass bot detection.")
     input("Please press enter once cloudfare bot-detection is passed.")
     
     print("\nAutomation will now start. Please keep driver windows open and maximized.")
     print("The drivers will automatically close once all authors are processed.")
     print("Sit back and enjoy :)")
+    testDriver.close()
     
     for driver in drivers:
         tabs = driver.window_handles
