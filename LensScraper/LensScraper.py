@@ -18,13 +18,16 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webbrowser import Chrome
-import pyautogui, openpyxl
+from tqdm import tqdm
+import pyautogui, openpyxl, csv
 
 randomBuffer = 2
-waitBuffer = 10
+waitBuffer = 4
+downloadBuffer = 8
+defFile = "doctor_data 1.xlsx"
 
 def __main__():
-    authorTable = getAuthorTable()
+    [authorTable, start, end] = getAuthorTable()
     speed, numDrivers = promptDriverParams()
     threads = [Thread()] * numDrivers
     threads[0].start()
@@ -32,8 +35,8 @@ def __main__():
     outputPath = Path.joinpath(Path(__file__).parent.resolve(), "Lens Downloads " +
                                datetime.now().strftime("%m-%d %H-%M-%S"))
     drivers = initDrivers(numDrivers, outputPath)    
-
-    for i in range(0, authorTable.shape[0]):
+    
+    for i in tqdm(range(int(start) - 2, int(end) - 1)):
         index = i % numDrivers
         threads[index].join()
         args = (drivers[index], authorTable['First Name'][i], authorTable['Last Name'][i])
@@ -47,7 +50,7 @@ def __main__():
 def getAuthorTable():
     confirm = False
     while not confirm:
-        authorPath = Path(input("\nName of authors excel file: "))
+        authorPath = Path(input("\nName of authors excel file (Leave blank to use " + defFile + "): ") or defFile)
         if not authorPath.is_absolute():
             authorPath = Path.joinpath(Path(__file__).parent.resolve(), authorPath)
         print("File selected: " + str(authorPath))
@@ -60,7 +63,12 @@ def getAuthorTable():
                     print("Could not open file. Please try again.")
         else:
             print("Could not find file. Please try again.")
-    return authorTable
+    
+    print("\nPlease enter the information below based on the excel row indices.")
+    start = input("Starting row number (Use 2 for first element): ")
+    end = input("Ending row number (Leave blank to set to end): ") or len(authorTable) + 1
+    
+    return [authorTable, start, end]
 
 def promptDriverParams():
     confirm = False    
@@ -69,10 +77,11 @@ def promptDriverParams():
         print("\nPlease enter speed below. Faster speed may be detected as unusual bot behavior.")
         print("Additionally, a random amount of time between 0-2 seconds will be added to the input speed.")
         speed = max(0.5, float(input("Base seconds per query (Recommended is 4): ").strip() or 4))
-        numDrivers = ceil(waitBuffer / speed)
+        numDrivers = ceil((downloadBuffer + waitBuffer) / speed)
         print("\nSpeed set to " + str(speed) + " + [0-" + str(randomBuffer) + "] seconds per query.")
         print("Number of drivers that will be used: " + str(numDrivers))
         confirm = input("Type 'y' to confirm (Press enter otherwise): ").lower() == "y"
+
     return [speed, numDrivers]
 
 def initDrivers(numDrivers, outputFolder):
@@ -134,7 +143,7 @@ def initDrivers(numDrivers, outputFolder):
         pyautogui.write("https://www.lens.org/lens/search/patent/list?q=" + str(int(random() * 1000)))
         pyautogui.press('enter')
 
-    sleep(waitBuffer)
+    sleep(downloadBuffer)
     test_html = "<html><head></head><body><div>It is safe to move the mouse now.\n" + \
         "Please navigate back to the command window.</div></body></html>"
     testDriver.get("data:text/html;charset=utf-8," + test_html)
@@ -158,30 +167,50 @@ def initDrivers(numDrivers, outputFolder):
     return drivers
 
 def pageThread(driver, firstName, lastName):
-    success = False
-    while(not success):
+    attempt = 0
+    fileName = (firstName + " " + lastName).replace(" ", "_")
+    filePath = Path.joinpath(driver.outputFolder, fileName + ".csv")
+    while(attempt < 3):
         try:
             driver.get("https://www.lens.org/lens/search/patent/list?q=inventor.name:(" + firstName + " " + lastName + ")")
-            wait = WebDriverWait(driver, waitBuffer); 
+            wait = WebDriverWait(driver, downloadBuffer); 
     
             button = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR,
                 "body > div.lf-ui-view.ng-scope > main > section > div > div:nth-child(2) > header > " +
                 "div:nth-child(3) > div.toolbar-results.clearfix.ng-scope > div > label > ul > li > a:nth-child(5)")))
-            button.click()
+            
+            foundNone = driver.find_elements(By.CSS_SELECTOR, "body > div.lf-ui-view.ng-scope > main > section > div > section > " +
+                "main > div:nth-child(1) > section > div.error--notice--text > h2")
+            if len(foundNone) > 0 and foundNone[0].text == "Your search did not match any documents":
+                with open(filePath, 'w', newline = "") as file:
+                    writer = csv.writer(file)
+                    writer.writerow(["Search did not match any documents"])
+                attempt = 5
+            else:
+                button.click()
     
-            fileInput = wait.until(EC.element_to_be_clickable((By.ID, "exportFilename")))
-            fileInput.send_keys(firstName + "_" + lastName)
+                fileInput = wait.until(EC.element_to_be_clickable((By.ID, "exportFilename")))
+                fileInput.send_keys(fileName)
+                sleep(waitBuffer)
+                fileInput.send_keys(Keys.ENTER)
     
-            button = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR,
-                "body > div.lf-ui-view.ng-scope > main > div:nth-child(4) > div.ng-scope.ng-isolate-scope > div > div > div " +
-                "> div.css-modal-wrapper-inner > div > div:nth-child(1) > div.row > div.col-md-8 > form > div > button")))
-            button.click()
-    
-            filePath = Path.joinpath(driver.outputFolder, firstName + "_" + lastName + ".csv")
-            for i in range(0, waitBuffer):
-                if not filePath.is_file(): sleep(1)
-                else: success = True
+                for i in range(0, downloadBuffer):
+                    if not filePath.is_file(): sleep(1)
+                    else:
+                        attempt = 5
+            
+                if attempt < 5:
+                    button = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR,
+                            "body > div.lf-ui-view.ng-scope > main > div:nth-child(4) > div.ng-scope.ng-isolate-scope > div > div > div " +
+                            "> div.css-modal-wrapper-inner > div > div:nth-child(1) > div.row > div.col-md-8 > form > div > button")))
+                    button.click()
+                
+                for i in range(0, downloadBuffer):
+                    if not filePath.is_file(): sleep(1)
+                    else:
+                        attempt = 5
         except:
-            success = False
-
+            attempt += 1
+    if attempt < 5:
+        print("\nFailed at: " + firstName + " " + lastName + "\n")
 __main__()
