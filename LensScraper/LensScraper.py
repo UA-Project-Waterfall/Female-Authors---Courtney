@@ -43,6 +43,7 @@ def __main__():
     while manager.running:
         pbar.n = manager.queryIndex
         pbar.update()
+        sleep(1)
     manager.join()
         
 def getAuthorTable():
@@ -191,19 +192,18 @@ class LensManager:
         self.queries += [query]
     
     def mainLoadThread(self):
-        while self.running:
-            while(self.running and self.queryIndex < len(self.queries)):
-                sleep(1)
-                for driver in self.drivers:
-                    if driver.loadReady:
-                        driver.loadReady = False
-                        driver.query = self.queries[self.queryIndex]
-                        driver.filePath = Path.joinpath(self.outputPath, driver.query.replace(" ", "_") + ".csv")
-                        self.queryIndex += 1
-                        self.randPause()
-                        Thread(target = self.__loadThread, args = [driver]).start()
-                        self.randPause()
-                        break
+        while(self.running and self.queryIndex < len(self.queries)):
+            sleep(1)
+            for driver in self.drivers:
+                if driver.loadReady:
+                    driver.loadReady = False
+                    driver.query = self.queries[self.queryIndex]
+                    driver.filePath = Path.joinpath(self.outputPath, driver.query.replace(" ", "_") + ".csv")
+                    self.queryIndex += 1
+                    self.randPause()
+                    Thread(target = self.__loadThread, args = [driver]).start()
+                    self.randPause()
+                    break
     
     def mainSaveThread(self, inProgress = True):
         while(self.running or inProgress):
