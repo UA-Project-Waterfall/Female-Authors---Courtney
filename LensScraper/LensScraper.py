@@ -1,6 +1,5 @@
 print("Importing Utility modules")
 
-from logging import root
 from pathlib import Path
 from random import random
 from math import ceil
@@ -23,8 +22,7 @@ from webbrowser import Chrome
 from tqdm import tqdm
 import pyautogui, openpyxl, csv
 
-defFile = "doctor_data 1.xlsx"
-downloadBuffer = 8
+defFile = "doctor_data 2.xlsx"
 waitBuffer = 4
 
 def __main__():
